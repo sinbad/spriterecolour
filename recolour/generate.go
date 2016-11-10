@@ -25,7 +25,7 @@ func floatEquals(a, b float64) bool {
 }
 
 type UniqueColour struct {
-	RGBA    color.NRGBA
+	RGBA    color.RGBA
 	H, S, V float64
 	// Store an index so that references in map know final position in list
 	Index uint16
@@ -54,9 +54,30 @@ func (l UniqueColourList) Swap(i, j int) {
 	l[i], l[j] = l[j], l[i]
 }
 
+// Why the hell doesn't image/color have  path for this? Only the reverse
+func colourTo8BitRGBA(c color.Color) color.RGBA {
+	// color.Color.RGBA is 0-65535 even from 8-bit channel images because of course it is
+	// Also premultiplied alpha but we'll preserve that if present
+	r, g, b, a := c.RGBA()
+	return color.RGBA{
+		uint8((float64(r) / 65535.0) * 255.0),
+		uint8((float64(g) / 65535.0) * 255.0),
+		uint8((float64(b) / 65535.0) * 255.0),
+		uint8((float64(a) / 65535.0) * 255.0),
+	}
+
+}
+
+func colourTo8BitPaletteRGBA(c color.Color) color.RGBA {
+	cout := colourTo8BitRGBA(c)
+	// Palette entries must be solid
+	cout.A = 255
+	return cout
+}
+
 // Generate reads an input sprite texture and generates a reference sprite file,
 // and a base lookup texture and / or parameter list
-func Generate(imagePath, outImagePath, outPaletteTexture string) ([]image.NRGBA, error) {
+func Generate(imagePath, outImagePath, outPaletteTexture string) ([]color.RGBA, error) {
 
 	f, err := os.OpenFile(imagePath, os.O_RDONLY, 0644)
 	if err != nil {
@@ -74,16 +95,15 @@ func Generate(imagePath, outImagePath, outPaletteTexture string) ([]image.NRGBA,
 
 // GenerateFromImage reads an image and generates a reference sprite file,
 // and a base lookup texture and / or parameter list
-func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) ([]image.NRGBA, error) {
-	// Go colours are alpha-premultiplied and uint32's with 65535 range: weird
-	// We want NON alpha premultiplied by default (internally could be premultiplied)
-	rgba := image.NewNRGBA(img.Bounds())
-	bounds := rgba.Bounds()
+func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) ([]color.RGBA, error) {
+	bounds := img.Bounds()
 	// Record of what colours are present
-	colourMap := make(map[color.NRGBA]*UniqueColour)
+	colourMap := make(map[color.RGBA]*UniqueColour)
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
-			p := rgba.NRGBAAt(x, y)
+			// Go colours are alpha-premultiplied and uint32's with 65535 range: weird
+			// We want NON alpha premultiplied by default (internally could be premultiplied)
+			p := colourTo8BitPaletteRGBA(img.At(x, y))
 
 			if _, ok := colourMap[p]; !ok {
 				cfcol := colorful.Color{float64(p.R) / 255.0, float64(p.G) / 255.0, float64(p.B) / 255.0}
@@ -113,7 +133,7 @@ func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) 
 	outSprite := image.NewNRGBA(image.Rect(bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y))
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
-			inpix := rgba.NRGBAAt(x, y)
+			inpix := colourTo8BitPaletteRGBA(img.At(x, y))
 
 			// Should never fail but just don't write pixel if it does
 			if col, ok := colourMap[inpix]; ok {
@@ -122,7 +142,7 @@ func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) 
 				// Blue channel = colour index V
 				blue := uint8(col.Index >> 16)
 				// Green channel = unused for now
-				outSprite.Set(x, y, color.NRGBA{red, blue, 0, inpix.A})
+				outSprite.Set(x, y, color.RGBA{red, blue, 0, inpix.A})
 			}
 		}
 	}
@@ -131,23 +151,44 @@ func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) 
 		return nil, err
 	}
 	err = png.Encode(of, outSprite)
+	of.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	// Now write palette texture
+	// Now write palette texture & build return
+	palette := make([]color.RGBA, 0, len(colourList))
 	if len(outPaletteTexture) > 0 {
-		// width, height := getPaletteImageDimensions(len(colourList))
-		// outSprite := image.NewNRGBA(image.Rect(0, 0, width, height))
+		width, height := getPaletteImageDimensions(len(colourList))
+		outPalette := image.NewRGBA(image.Rect(0, 0, width, height))
+		x := 0
+		y := 0
+		for n := 0; n < len(colourList); n++ {
+			outPalette.SetRGBA(x, y, colourList[n].RGBA)
+			palette = append(palette, colourList[n].RGBA)
+			x++
+			if x == width {
+				x = 0
+				y++
+			}
+		}
 
-		// opf, err := os.OpenFile(outPaletteTexture, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		opf, err := os.OpenFile(outPaletteTexture, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		if err != nil {
+			return nil, err
+		}
+		err = png.Encode(opf, outPalette)
+		opf.Close()
+		if err != nil {
+			return nil, err
+		}
 
 	}
 
-	return nil, nil
+	return palette, nil
 }
 
-func nextPowerOfTwo(v uint) uint {
+func nextPowerOfTwo(v int) int {
 	v--
 	v |= v >> 1
 	v |= v >> 2
@@ -158,11 +199,11 @@ func nextPowerOfTwo(v uint) uint {
 	return v
 }
 
-func getPaletteImageDimensions(numColours uint) (width, height uint) {
+func getPaletteImageDimensions(numColours int) (width, height int) {
 	width = 256
 	height = 1
 	if numColours > 256 {
-		height = nextPowerOfTwo(uint(math.Ceil(float64(numColours) / 256.0)))
+		height = nextPowerOfTwo(int(math.Ceil(float64(numColours) / 256.0)))
 	} else if numColours <= 128 {
 		width = nextPowerOfTwo(numColours)
 	}

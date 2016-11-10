@@ -111,9 +111,9 @@ func rootCommand(cmd *cobra.Command, args []string) {
 	if len(outputParamsFile) > 0 {
 		// TODO generate shader code to file
 	} else {
-		for _, c := range palette {
+		for i, c := range palette {
 			// TODO actually generate shader code?
-			fmt.Printf("%v\n", c)
+			fmt.Printf("%d: %v\n", i, c)
 		}
 	}
 
