@@ -65,6 +65,13 @@ colour.
 
 ## Limitations
 
+### No filtering or mipmaps
+
+Mipmapping or filtering doesn't work because the textures are no longer continuous,
+having unrelated values next to each other. Therefore you need to disable all
+texture filtering and mipmaps for both the reference sprite and the palette
+texture.
+
 ### No lossy compression
 
 Because the output reference sprite relies very heavily on correct indexing 
@@ -74,7 +81,7 @@ to a lossy compressed format such as JPG or (sadly) ETC/DXT/S3TC.
 
 #### Example: texture settings in Unity
 Click on the sprite texture, and in the Inspector, check the "Override for.."
-box and set the format to "Truecolor". 
+box and set the format to "Truecolor" (or in Advanced mode, "ARGB 32 bit"). 
 
 You probably also want to make sure that the Packing Tag for the sprite is set
 to a value that is only shared by other sprites using recolouring.
