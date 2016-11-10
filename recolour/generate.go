@@ -6,7 +6,6 @@ import (
 	"image/color"
 	"math"
 	"os"
-	"sort"
 
 	colorful "github.com/lucasb-eyer/go-colorful"
 	// This causes the codecs to be loaded
@@ -25,33 +24,58 @@ func floatEquals(a, b float64) bool {
 }
 
 type UniqueColour struct {
-	RGBA    color.RGBA
-	H, S, V float64
+	RGBA   color.RGBA
+	colour colorful.Color
 	// Store an index so that references in map know final position in list
 	Index uint16
 }
 
-type UniqueColourList []*UniqueColour
-
-func (l UniqueColourList) Len() int {
-	return len(l)
-}
-
-func (l UniqueColourList) Less(i, j int) bool {
-	a := l[i]
-	b := l[j]
-	if floatEquals(a.H, b.H) {
-		if floatEquals(a.S, b.S) {
-			return a.V < b.V
+func sortColours(inlist []*UniqueColour) []*UniqueColour {
+	// First generate a distance map
+	// Some duplication here A->B and B->A both stored but live with for simplicity
+	n := len(inlist)
+	distances := make([][]float64, n)
+	for fromN := 0; fromN < n; fromN++ {
+		distances[fromN] = make([]float64, n)
+		for toN := 0; toN < n; toN++ {
+			if toN == fromN {
+				distances[fromN][toN] = 0.0
+			} else {
+				distances[fromN][toN] = inlist[fromN].colour.DistanceLab(inlist[toN].colour)
+			}
 		}
-		return a.S < b.S
 	}
-	return a.H < b.H
-}
 
-func (l UniqueColourList) Swap(i, j int) {
-	l[i].Index, l[j].Index = l[j].Index, l[i].Index
-	l[i], l[j] = l[j], l[i]
+	visited := make([]bool, n)
+
+	// Now do a nearest neighbour walk
+	outList := make([]*UniqueColour, 0, n)
+	// Arbitrarily pick the first colour
+	currentNode := 0
+	outList = append(outList, inlist[currentNode])
+	visited[currentNode] = true
+	for i := 1; i < n; i++ {
+		minDistance := float64(99999999999999.9)
+		bestNode := -1
+		for j := 0; j < n; j++ {
+			if visited[j] {
+				continue
+			}
+			dist := distances[currentNode][j]
+			if dist < minDistance {
+				minDistance = dist
+				bestNode = j
+			}
+		}
+		if bestNode == -1 {
+			fmt.Fprintf(os.Stderr, "Ran out of colours to sort, this is a bug")
+			break
+		}
+		currentNode = bestNode
+		outList = append(outList, inlist[currentNode])
+		visited[currentNode] = true
+	}
+	return outList
 }
 
 // Why the hell doesn't image/color have  path for this? Only the reverse
@@ -107,8 +131,7 @@ func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) 
 
 			if _, ok := colourMap[p]; !ok {
 				cfcol := colorful.Color{float64(p.R) / 255.0, float64(p.G) / 255.0, float64(p.B) / 255.0}
-				h, s, v := cfcol.Hsv()
-				col := &UniqueColour{p, h, s, v, 0}
+				col := &UniqueColour{p, cfcol, 0}
 				colourMap[p] = col
 			}
 		}
@@ -119,7 +142,7 @@ func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) 
 	}
 
 	// Re-order the colours by HSV so easier to edit
-	colourList := make(UniqueColourList, 0, len(colourMap))
+	colourList := make([]*UniqueColour, 0, len(colourMap))
 	nextIndex := uint16(0)
 	for _, c := range colourMap {
 		c.Index = nextIndex
@@ -127,7 +150,7 @@ func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) 
 		nextIndex++
 	}
 	// Sort, the swap function will swap indexes
-	sort.Sort(colourList)
+	colourList = sortColours(colourList)
 
 	// Now generate the sprite output
 	outSprite := image.NewNRGBA(image.Rect(bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y))
