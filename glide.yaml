@@ -1,0 +1,4 @@
+package: github.com/sinbad/spriterecolour
+import:
+- package: github.com/spf13/cobra
+- package: github.com/lucasb-eyer/go-colorful

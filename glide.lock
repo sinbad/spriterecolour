@@ -1,0 +1,12 @@
+hash: 5ddd733ac4d55b98143abd7bff4e5de0329ed0bfa947909ca59a360fde78046f
+updated: 2016-11-09T18:17:03.540669013Z
+imports:
+- name: github.com/inconshreveable/mousetrap
+  version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/lucasb-eyer/go-colorful
+  version: 9c2852a141bf4711e4276f8f119c90d0f20a556c
+- name: github.com/spf13/cobra
+  version: 6e91dded25d73176bf7f60b40dd7aa1f0bf9be8d
+- name: github.com/spf13/pflag
+  version: 5ccb023bc27df288a957c5e994cd44fd19619465
+testImports: []
