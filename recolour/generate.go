@@ -156,10 +156,11 @@ func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) 
 	outSprite := image.NewNRGBA(image.Rect(bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y))
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
-			inpix := colourTo8BitPaletteRGBA(img.At(x, y))
+			inpix := colourTo8BitRGBA(img.At(x, y))
+			inpixLookup := colourTo8BitPaletteRGBA(img.At(x, y))
 
 			// Should never fail but just don't write pixel if it does
-			if col, ok := colourMap[inpix]; ok {
+			if col, ok := colourMap[inpixLookup]; ok {
 				// Red channel = colour index U
 				red := uint8(col.Index & 0x0000FFFF)
 				// Blue channel = colour index V
