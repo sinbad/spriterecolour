@@ -155,7 +155,7 @@ func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) 
 	colourList = sortColours(colourList)
 
 	// Now generate the sprite output
-	outSprite := image.NewNRGBA(image.Rect(bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y))
+	outSprite := image.NewRGBA(image.Rect(bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y))
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			inpix := colourTo8BitRGBA(img.At(x, y))
