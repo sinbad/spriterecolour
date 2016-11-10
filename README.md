@@ -72,7 +72,7 @@ using the Red channel, lossy compression cannot be supported. The reference
 sprite is always output in PNG format right now, and you should not convert it
 to a lossy compressed format such as JPG or (sadly) ETC/DXT/S3TC. 
 
-### Example: texture settings in Unity
+#### Example: texture settings in Unity
 Click on the sprite texture, and in the Inspector, check the "Override for.."
 box and set the format to "Truecolor". 
 
