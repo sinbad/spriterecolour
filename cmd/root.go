@@ -108,9 +108,10 @@ func rootCommand(cmd *cobra.Command, args []string) {
 	fmt.Fprintf(os.Stderr, "Completed successfully\n")
 	fmt.Fprintf(os.Stderr, "  Sprite template: %v\n", outputFile)
 	fmt.Fprintf(os.Stderr, "  Palette texture: %v\n", outputTextureFile)
+
 	if len(outputParamsFile) > 0 {
 		// TODO generate shader code to file
-	} else {
+	} else if len(palette) < 256 {
 		for i, c := range palette {
 			// TODO actually generate shader code?
 			fmt.Printf("%d: %v\n", i, c)
