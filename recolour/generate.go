@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"math"
 	"os"
 
 	colorful "github.com/lucasb-eyer/go-colorful"
@@ -154,6 +153,8 @@ func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) 
 	// Sort, the swap function will swap indexes
 	colourList = sortColours(colourList)
 
+	paletteWidth, paletteHeight := getPaletteImageDimensions(len(colourList))
+
 	// Now generate the sprite output
 	outSprite := image.NewRGBA(image.Rect(bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y))
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
@@ -165,10 +166,10 @@ func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) 
 			if col, ok := colourMap[inpixLookup]; ok {
 				// Red channel = colour index U
 				red := uint8(col.Index & 0x0000FFFF)
-				// Blue channel = colour index V
-				blue := uint8(col.Index >> 16)
-				// Green channel = unused for now
-				outSprite.Set(x, y, color.RGBA{red, blue, 0, inpix.A})
+				// Green channel = colour index V
+				green := uint8(col.Index >> 16)
+				// Blue channel = unused for now
+				outSprite.Set(x, y, color.RGBA{red, green, 0, inpix.A})
 			}
 		}
 	}
@@ -185,15 +186,14 @@ func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) 
 	// Now write palette texture & build return
 	palette := make([]color.RGBA, 0, len(colourList))
 	if len(outPaletteTexture) > 0 {
-		width, height := getPaletteImageDimensions(len(colourList))
-		outPalette := image.NewRGBA(image.Rect(0, 0, width, height))
+		outPalette := image.NewRGBA(image.Rect(0, 0, paletteWidth, paletteHeight))
 		x := 0
 		y := 0
 		for n := 0; n < len(colourList); n++ {
 			outPalette.SetRGBA(x, y, colourList[n].RGBA)
 			palette = append(palette, colourList[n].RGBA)
 			x++
-			if x == width {
+			if x == paletteWidth {
 				x = 0
 				y++
 			}
@@ -226,12 +226,8 @@ func nextPowerOfTwo(v int) int {
 }
 
 func getPaletteImageDimensions(numColours int) (width, height int) {
-	width = 256
-	height = 1
 	if numColours > 256 {
-		height = nextPowerOfTwo(int(math.Ceil(float64(numColours) / 256.0)))
-	} else if numColours <= 128 {
-		width = nextPowerOfTwo(numColours)
+		return 256, 256
 	}
-	return
+	return 256, 1
 }
