@@ -1,5 +1,5 @@
-hash: 5ddd733ac4d55b98143abd7bff4e5de0329ed0bfa947909ca59a360fde78046f
-updated: 2016-11-09T18:17:03.540669013Z
+hash: 208fc5e9965966357a49b9a1077c7098ce0b939fc2d4d0272af2eaa096a54996
+updated: 2016-11-10T12:59:52.053627031Z
 imports:
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
@@ -9,4 +9,6 @@ imports:
   version: 6e91dded25d73176bf7f60b40dd7aa1f0bf9be8d
 - name: github.com/spf13/pflag
   version: 5ccb023bc27df288a957c5e994cd44fd19619465
+- name: github.com/stretchr/testify
+  version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
 testImports: []

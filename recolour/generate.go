@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"math"
 	"os"
 	"sort"
 
@@ -55,7 +56,7 @@ func (l UniqueColourList) Swap(i, j int) {
 
 // Generate reads an input sprite texture and generates a reference sprite file,
 // and a base lookup texture and / or parameter list
-func Generate(imagePath, outImagePath, outPaletteTexture, outPaletteParams string) (color.Palette, error) {
+func Generate(imagePath, outImagePath, outPaletteTexture string) ([]image.NRGBA, error) {
 
 	f, err := os.OpenFile(imagePath, os.O_RDONLY, 0644)
 	if err != nil {
@@ -68,12 +69,12 @@ func Generate(imagePath, outImagePath, outPaletteTexture, outPaletteParams strin
 		return nil, err
 	}
 
-	return GenerateFromImage(img, outImagePath, outPaletteTexture, outPaletteParams)
+	return GenerateFromImage(img, outImagePath, outPaletteTexture)
 }
 
 // GenerateFromImage reads an image and generates a reference sprite file,
 // and a base lookup texture and / or parameter list
-func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture, outPaletteParams string) (color.Palette, error) {
+func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) ([]image.NRGBA, error) {
 	// Go colours are alpha-premultiplied and uint32's with 65535 range: weird
 	// We want NON alpha premultiplied by default (internally could be premultiplied)
 	rgba := image.NewNRGBA(img.Bounds())
@@ -134,5 +135,36 @@ func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture, outPale
 		return nil, err
 	}
 
+	// Now write palette texture
+	if len(outPaletteTexture) > 0 {
+		// width, height := getPaletteImageDimensions(len(colourList))
+		// outSprite := image.NewNRGBA(image.Rect(0, 0, width, height))
+
+		// opf, err := os.OpenFile(outPaletteTexture, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+
+	}
+
 	return nil, nil
+}
+
+func nextPowerOfTwo(v uint) uint {
+	v--
+	v |= v >> 1
+	v |= v >> 2
+	v |= v >> 4
+	v |= v >> 8
+	v |= v >> 16
+	v++
+	return v
+}
+
+func getPaletteImageDimensions(numColours uint) (width, height uint) {
+	width = 256
+	height = 1
+	if numColours > 256 {
+		height = nextPowerOfTwo(uint(math.Ceil(float64(numColours) / 256.0)))
+	} else if numColours <= 128 {
+		width = nextPowerOfTwo(numColours)
+	}
+	return
 }

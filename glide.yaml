@@ -2,3 +2,5 @@ package: github.com/sinbad/spriterecolour
 import:
 - package: github.com/spf13/cobra
 - package: github.com/lucasb-eyer/go-colorful
+- package: github.com/stretchr/testify
+  version: ^1.1.4

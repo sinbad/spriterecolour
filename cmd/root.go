@@ -99,7 +99,7 @@ func rootCommand(cmd *cobra.Command, args []string) {
 			fmt.Sprintf("%s_palette.png", filepath.Base(infile)))
 	}
 
-	palette, err := recolour.Generate(infile, outputFile, outputTextureFile, outputParamsFile)
+	palette, err := recolour.Generate(infile, outputFile, outputTextureFile)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(9)
@@ -109,7 +109,7 @@ func rootCommand(cmd *cobra.Command, args []string) {
 	fmt.Fprintf(os.Stderr, "  Sprite template: %v\n", outputFile)
 	fmt.Fprintf(os.Stderr, "  Palette texture: %v\n", outputTextureFile)
 	if len(outputParamsFile) > 0 {
-		fmt.Fprintf(os.Stderr, "  Params:%v\n", outputParamsFile)
+		// TODO generate shader code to file
 	} else {
 		for _, c := range palette {
 			// TODO actually generate shader code?
