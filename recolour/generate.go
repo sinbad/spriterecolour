@@ -72,7 +72,9 @@ func sortColours(inlist []*UniqueColour) []*UniqueColour {
 			break
 		}
 		currentNode = bestNode
-		outList = append(outList, inlist[currentNode])
+		newcol := inlist[currentNode]
+		newcol.Index = uint16(i)
+		outList = append(outList, newcol)
 		visited[currentNode] = true
 	}
 	return outList
