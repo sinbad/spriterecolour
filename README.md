@@ -8,6 +8,7 @@ original sprites.
 
 There's a demo project in Unity using assets produced by this tool here:
 [Unity Sprite Recolouring Demo](https://github.com/sinbad/SpriteRecolourUnity).
+![Example](SpriteRecolourAnimated.gif)
 
 ## How to use
 
