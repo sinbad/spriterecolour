@@ -62,7 +62,7 @@ parameters to control the recolouring.`,
 
 	RootCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Output sprite file; default <input>_template.png")
 	RootCmd.Flags().StringVarP(&outputTextureFile, "texture", "t", "", "File to write palette as texture; default <input>_palette.png")
-	RootCmd.Flags().StringVarP(&outputParamsFile, "params", "p", "", "File to write shader params to; default none, stdout")
+	RootCmd.Flags().StringVarP(&outputParamsFile, "params", "p", "", "File to write shader params to; default none")
 	RootCmd.SetUsageFunc(usageCommand)
 
 }
@@ -74,8 +74,9 @@ Usage:
 
 Options:
   -o, --output string    Output sprite file; default <input>_template.png
-  -p, --params string    File to write shader params to; default none, stdout
   -t, --texture string   File to write palette as texture; default <input>_palette.png
+  -p, --params string    File to write shader params to; default none
+                         Mutually exclusive with --texture
 `
 	fmt.Fprintf(os.Stderr, usage)
 	return nil
@@ -89,12 +90,18 @@ func rootCommand(cmd *cobra.Command, args []string) {
 	}
 	infile := args[0]
 
+	if len(outputTextureFile) > 0 && len(outputParamsFile) > 0 {
+		fmt.Fprintf(os.Stderr, "Error: can't request both texture and params palettes together\n")
+		RootCmd.Usage()
+		os.Exit(1)
+	}
+
 	if len(outputFile) == 0 {
 		outputFile = filepath.Join(filepath.Dir(infile),
 			fmt.Sprintf("%s_template.png", filepath.Base(infile)))
 	}
 
-	if len(outputTextureFile) == 0 {
+	if len(outputTextureFile) == 0 && len(outputParamsFile) == 0 {
 		outputTextureFile = filepath.Join(filepath.Dir(infile),
 			fmt.Sprintf("%s_palette.png", filepath.Base(infile)))
 	}
@@ -105,17 +112,13 @@ func rootCommand(cmd *cobra.Command, args []string) {
 		os.Exit(9)
 	}
 
+	if len(outputParamsFile) > 0 {
+		// TODO generate shader code to file
+		_ = palette
+	}
+
 	fmt.Fprintf(os.Stderr, "Completed successfully\n")
 	fmt.Fprintf(os.Stderr, "  Sprite template: %v\n", outputFile)
 	fmt.Fprintf(os.Stderr, "  Palette texture: %v\n", outputTextureFile)
-
-	if len(outputParamsFile) > 0 {
-		// TODO generate shader code to file
-	} else if len(palette) < 256 {
-		for i, c := range palette {
-			// TODO actually generate shader code?
-			fmt.Printf("%d: %v\n", i, c)
-		}
-	}
 
 }

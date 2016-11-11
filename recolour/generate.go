@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"math"
 	"os"
 
 	colorful "github.com/lucasb-eyer/go-colorful"
@@ -101,7 +102,9 @@ func colourTo8BitPaletteRGBA(c color.Color) color.RGBA {
 }
 
 // Generate reads an input sprite texture and generates a reference sprite file,
-// and a base lookup texture and / or parameter list
+// and optionally a palette texture. If outPaletteTexture is supplied then the
+// R channel will be rescaled based on the palette texture size; otherwise it
+// will be the colour index (and limited to 256 colours)
 func Generate(imagePath, outImagePath, outPaletteTexture string) ([]color.RGBA, error) {
 
 	f, err := os.OpenFile(imagePath, os.O_RDONLY, 0644)
@@ -119,7 +122,9 @@ func Generate(imagePath, outImagePath, outPaletteTexture string) ([]color.RGBA, 
 }
 
 // GenerateFromImage reads an image and generates a reference sprite file,
-// and a base lookup texture and / or parameter list
+// and optionally a palette texture. If outPaletteTexture is supplied then the
+// R channel will be rescaled based on the palette texture size; otherwise it
+// will be the colour index (and limited to 256 colours)
 func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) ([]color.RGBA, error) {
 	bounds := img.Bounds()
 	// Record of what colours are present
@@ -138,8 +143,13 @@ func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) 
 		}
 	}
 
+	generatePaletteTexture := len(outPaletteTexture) > 0
+
+	if len(colourMap) > 256 && !generatePaletteTexture {
+		return nil, fmt.Errorf("Sorry, sprite contains too many colours for shader parameters (>256)")
+	}
 	if len(colourMap) > 65536 {
-		return nil, fmt.Errorf("Sorry, sprite contains too many colours")
+		return nil, fmt.Errorf("Sorry, sprite contains too many colours (>65536)")
 	}
 
 	// Re-order the colours by HSV so easier to edit
@@ -154,6 +164,7 @@ func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) 
 	colourList = sortColours(colourList)
 
 	paletteWidth, paletteHeight := getPaletteImageDimensions(len(colourList))
+	rescaler := NewTexCoordRescale(paletteWidth, paletteHeight)
 
 	// Now generate the sprite output
 	outSprite := image.NewRGBA(image.Rect(bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y))
@@ -164,10 +175,19 @@ func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) 
 
 			// Should never fail but just don't write pixel if it does
 			if col, ok := colourMap[inpixLookup]; ok {
+				var red, green uint8
 				// Red channel = colour index U
-				red := uint8(col.Index & 0x0000FFFF)
+				red = uint8(col.Index & 0x0000FFFF)
+				if generatePaletteTexture {
+					// Need to scale UVs from 0-256 to 0-paletteSize
+					red = rescaler.rescaleHorizontal(red)
+				}
 				// Green channel = colour index V
-				green := uint8(col.Index >> 16)
+				green = uint8(col.Index >> 16)
+				if generatePaletteTexture {
+					// Need to scale UVs from 0-256 to 0-paletteSize
+					green = rescaler.rescaleVertical(green)
+				}
 				// Blue channel = unused for now
 				outSprite.Set(x, y, color.RGBA{red, green, 0, inpix.A})
 			}
@@ -214,6 +234,29 @@ func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) 
 	return palette, nil
 }
 
+// Texture coordinate rescaler with saved factors
+type TexCoordRescale struct {
+	rescaleXMul float64
+	rescaleXOff float64
+	rescaleYMul float64
+	rescaleYOff float64
+}
+
+func NewTexCoordRescale(paletteWidth, paletteHeight int) TexCoordRescale {
+	xMul := 256.0 / float64(paletteWidth)
+	xOff := xMul * 0.5 // to ensure we target middle of texel
+	yMul := 256.0 / float64(paletteWidth)
+	yOff := yMul * 0.5
+	return TexCoordRescale{xMul, xOff, yMul, yOff}
+}
+
+func (t *TexCoordRescale) rescaleHorizontal(col uint8) uint8 {
+	return uint8(float64(col)*t.rescaleXMul + t.rescaleXOff)
+}
+func (t *TexCoordRescale) rescaleVertical(col uint8) uint8 {
+	return uint8(float64(col)*t.rescaleYMul + t.rescaleYOff)
+}
+
 func nextPowerOfTwo(v int) int {
 	v--
 	v |= v >> 1
@@ -226,8 +269,12 @@ func nextPowerOfTwo(v int) int {
 }
 
 func getPaletteImageDimensions(numColours int) (width, height int) {
+	width = 256
+	height = 1
 	if numColours > 256 {
-		return 256, 256
+		height = nextPowerOfTwo(int(math.Ceil(float64(numColours) / 256.0)))
+	} else if numColours <= 128 {
+		width = nextPowerOfTwo(numColours)
 	}
-	return 256, 1
+	return
 }

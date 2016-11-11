@@ -20,6 +20,9 @@ Usage:
 Options:
   -o, --output string    Output sprite file; default <input>_template.png
   -t, --texture string   File to write palette as texture; default <input>_palette.png
+  -p, --params string    File to write palette as params; default none
+                         Mutually exclusive with -t/--texture since contents may
+                         differ.
 ```
 
 ## Principle
@@ -43,11 +46,12 @@ SpriteRecolour allows the use of any input sprite, and performs these steps
    vertically in powers of 2.
 4. Write another sprite texture the same size as the original, which we call the
    **reference sprite**. Set the colour components as follows:
-   * R = U index of colour in palette texture
-   * G = V index of colour in palette texture
+   * R = Colour index, which is either:
+     * U texture coord to palette texture (default if --params not used)
+     * Parameter index to shader parameter (if --params used)
+   * G = V index of colour in palette texture (if --params not used)
    * B = Currently unused
    * A = original alpha
-5. If the palette is small enough, write out a list of reference palette colours
 
 When rendering the sprite, we simply combine the **reference sprite** with 
 *either* a modified palette texture or modified shader arguments to recolour it. 
@@ -62,6 +66,17 @@ out.a = in.a;
 Where `GetPaletteColour` either samples a palette texture (no filtering /
 mipmapping) or indexes an array of shader constants containing the replacement
 colour.
+
+### Differences when using palette textures/parameters
+The values in the Red channel are different depending on whether you're using
+a palette texture or shader parameters to specify the palette. 
+
+1. When using a **palette texture**, the colour index is rescaled so that it
+   becomes a valid texture coordinate. If the palette texture is smaller than
+   256 pixels wide then this will be different to the colour index. The same
+   applies to the green channel if more than 256 colours are used.
+2. When using **shader parameters**, the values are always the unmodified index
+   of the colour. Because of this a maximum of 256 colours are allowed
 
 ## Limitations
 
