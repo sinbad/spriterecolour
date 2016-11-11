@@ -20,10 +20,15 @@ Usage:
 Options:
   -o, --output string    Output sprite file; default <input>_reference.png
   -t, --texture string   File to write palette as texture; default <input>_palette.png
-  -p, --params string    File to write palette as params; default none
-                         Mutually exclusive with -t/--texture since contents may
-                         differ.
+  -p, --params string    File to write shader params to; default none
+                         Mutually exclusive with --texture
+  -b, --byte-params      When using --params, write values as 0-255 instead of 0.0-1.0-255
 ```
+
+## Example use
+
+There's a demo project in Unity using assets produced by this tool here:
+[Unity Sprite Recolouring Demo](https://github.com/sinbad/SpriteRecolourUnity).
 
 ## Principle
 

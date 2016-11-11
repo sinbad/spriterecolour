@@ -33,6 +33,7 @@ import (
 var (
 	outputFile        string
 	outputParamsFile  string
+	paramsAsBytes     bool
 	outputTextureFile string
 )
 
@@ -63,6 +64,7 @@ parameters to control the recolouring.`,
 	RootCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Output sprite file; default <input>_reference.png")
 	RootCmd.Flags().StringVarP(&outputTextureFile, "texture", "t", "", "File to write palette as texture; default <input>_palette.png")
 	RootCmd.Flags().StringVarP(&outputParamsFile, "params", "p", "", "File to write shader params to; default none")
+	RootCmd.Flags().BoolVarP(&paramsAsBytes, "byte-params", "b", false, "When using --params, write values as 0-255 instead of 0.0-1.0")
 	RootCmd.SetUsageFunc(usageCommand)
 
 }
@@ -77,6 +79,7 @@ Options:
   -t, --texture string   File to write palette as texture; default <input>_palette.png
   -p, --params string    File to write shader params to; default none
                          Mutually exclusive with --texture
+  -b, --byte-params      When using --params, write values as 0-255 instead of 0.0-1.0
 `
 	fmt.Fprintf(os.Stderr, usage)
 	return nil
@@ -118,8 +121,21 @@ func rootCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if len(outputParamsFile) > 0 {
-		// TODO generate shader code to file
-		_ = palette
+		fp, err := os.OpenFile(outputParamsFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			os.Exit(9)
+		}
+		defer fp.Close()
+		for _, c := range palette {
+			// Params are written just as parenthesis since how you feed them in
+			// depends on the language / engine you're using
+			if paramsAsBytes {
+				fmt.Fprintf(fp, "(%v, %v, %v, %v)\n", uint8(c.R), uint8(c.G), uint8(c.B), uint8(c.A))
+			} else {
+				fmt.Fprintf(fp, "(%v, %v, %v, %v)\n", float64(c.R)/255.0, float64(c.G)/255.0, float64(c.B)/255.0, float64(c.A)/255.0)
+			}
+		}
 	}
 
 	fmt.Fprintf(os.Stderr, "Completed successfully\n")

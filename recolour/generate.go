@@ -202,20 +202,25 @@ func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) 
 
 	// Now write palette texture & build return
 	palette := make([]color.RGBA, 0, len(colourList))
-	if len(outPaletteTexture) > 0 {
-		outPalette := image.NewRGBA(image.Rect(0, 0, paletteWidth, paletteHeight))
-		x := 0
-		y := 0
-		for n := 0; n < len(colourList); n++ {
+	var outPalette *image.RGBA
+	if generatePaletteTexture {
+		outPalette = image.NewRGBA(image.Rect(0, 0, paletteWidth, paletteHeight))
+	}
+	x := 0
+	y := 0
+	for n := 0; n < len(colourList); n++ {
+		if generatePaletteTexture {
 			outPalette.SetRGBA(x, y, colourList[n].RGBA)
-			palette = append(palette, colourList[n].RGBA)
-			x++
-			if x == paletteWidth {
-				x = 0
-				y++
-			}
 		}
+		palette = append(palette, colourList[n].RGBA)
+		x++
+		if x == paletteWidth {
+			x = 0
+			y++
+		}
+	}
 
+	if generatePaletteTexture {
 		opf, err := os.OpenFile(outPaletteTexture, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
 			return nil, err
@@ -225,7 +230,6 @@ func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) 
 		if err != nil {
 			return nil, err
 		}
-
 	}
 
 	return palette, nil
