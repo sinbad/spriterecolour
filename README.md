@@ -2,16 +2,21 @@
 
 ## Introduction
 
-This library is designed to generate the base textures needed to easily recolour 
+This tool generates the base textures needed to easily recolour 
 sprites flexibly on the fly in a shader, while preserving easy authoring of the 
 original sprites.
 
-An artist can create a sprite exactly as they usually would, then this tool will 
-generate from that a derived "reference" sprite and a base colour parametrisation, which 
-re-creates the original appearance. Alternative colour palettes can swapped in
-at runtime.
+There's a demo project in Unity using assets produced by this tool here:
+[Unity Sprite Recolouring Demo](https://github.com/sinbad/SpriteRecolourUnity).
 
 ## How to use
+
+An artist creates a sprite exactly as they usually would. This tool generates
+from that a derived "reference" sprite and a base palette, stored either as a
+separate small texture or shader parameters. Combining the two in a shader
+re-creates the original appearance, and alternative colour palettes can swapped 
+in at runtime by providing alternate palette textures or changing shader 
+parameters.
 
 ```
 Usage:
@@ -24,11 +29,6 @@ Options:
                          Mutually exclusive with --texture
   -b, --byte-params      When using --params, write values as 0-255 instead of 0.0-1.0-255
 ```
-
-## Example use
-
-There's a demo project in Unity using assets produced by this tool here:
-[Unity Sprite Recolouring Demo](https://github.com/sinbad/SpriteRecolourUnity).
 
 ## Principle
 
