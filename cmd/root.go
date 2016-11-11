@@ -60,7 +60,7 @@ parameters to control the recolouring.`,
 		Run: rootCommand,
 	}
 
-	RootCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Output sprite file; default <input>_template.png")
+	RootCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Output sprite file; default <input>_reference.png")
 	RootCmd.Flags().StringVarP(&outputTextureFile, "texture", "t", "", "File to write palette as texture; default <input>_palette.png")
 	RootCmd.Flags().StringVarP(&outputParamsFile, "params", "p", "", "File to write shader params to; default none")
 	RootCmd.SetUsageFunc(usageCommand)
@@ -73,7 +73,7 @@ Usage:
   spriterecolour [options] <input file>
 
 Options:
-  -o, --output string    Output sprite file; default <input>_template.png
+  -o, --output string    Output sprite file; default <input>_reference.png
   -t, --texture string   File to write palette as texture; default <input>_palette.png
   -p, --params string    File to write shader params to; default none
                          Mutually exclusive with --texture
@@ -96,14 +96,19 @@ func rootCommand(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	baseinfile := filepath.Base(infile)
+	if ext := filepath.Ext(infile); len(ext) > 0 {
+		baseinfile = baseinfile[:len(baseinfile)-len(ext)]
+	}
+
 	if len(outputFile) == 0 {
 		outputFile = filepath.Join(filepath.Dir(infile),
-			fmt.Sprintf("%s_template.png", filepath.Base(infile)))
+			fmt.Sprintf("%s_reference.png", baseinfile))
 	}
 
 	if len(outputTextureFile) == 0 && len(outputParamsFile) == 0 {
 		outputTextureFile = filepath.Join(filepath.Dir(infile),
-			fmt.Sprintf("%s_palette.png", filepath.Base(infile)))
+			fmt.Sprintf("%s_palette.png", baseinfile))
 	}
 
 	palette, err := recolour.Generate(infile, outputFile, outputTextureFile)
@@ -118,7 +123,12 @@ func rootCommand(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Fprintf(os.Stderr, "Completed successfully\n")
-	fmt.Fprintf(os.Stderr, "  Sprite template: %v\n", outputFile)
-	fmt.Fprintf(os.Stderr, "  Palette texture: %v\n", outputTextureFile)
+	fmt.Fprintf(os.Stderr, "  Sprite reference: %v\n", outputFile)
+	if len(outputTextureFile) > 0 {
+		fmt.Fprintf(os.Stderr, "  Palette texture: %v\n", outputTextureFile)
+	}
+	if len(outputParamsFile) > 0 {
+		fmt.Fprintf(os.Stderr, "  Params: %v\n", outputParamsFile)
+	}
 
 }

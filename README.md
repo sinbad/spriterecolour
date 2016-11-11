@@ -18,7 +18,7 @@ Usage:
   spriterecolour [options] <input file>
 
 Options:
-  -o, --output string    Output sprite file; default <input>_template.png
+  -o, --output string    Output sprite file; default <input>_reference.png
   -t, --texture string   File to write palette as texture; default <input>_palette.png
   -p, --params string    File to write palette as params; default none
                          Mutually exclusive with -t/--texture since contents may
