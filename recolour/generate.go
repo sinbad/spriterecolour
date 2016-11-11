@@ -27,7 +27,7 @@ type UniqueColour struct {
 	RGBA   color.RGBA
 	colour colorful.Color
 	// Store an index so that references in map know final position in list
-	Index uint16
+	Index int
 }
 
 func sortColours(inlist []*UniqueColour) []*UniqueColour {
@@ -73,7 +73,7 @@ func sortColours(inlist []*UniqueColour) []*UniqueColour {
 		}
 		currentNode = bestNode
 		newcol := inlist[currentNode]
-		newcol.Index = uint16(i)
+		newcol.Index = i
 		outList = append(outList, newcol)
 		visited[currentNode] = true
 	}
@@ -129,6 +129,9 @@ func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) 
 	bounds := img.Bounds()
 	// Record of what colours are present
 	colourMap := make(map[color.RGBA]*UniqueColour)
+	// Build colour list as we go so ordering based on encountered pixels is deterministic
+	// If we use the map to generate later, ordering is random
+	colourList := make([]*UniqueColour, 0)
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			// Go colours are alpha-premultiplied and uint32's with 65535 range: weird
@@ -137,8 +140,9 @@ func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) 
 
 			if _, ok := colourMap[p]; !ok {
 				cfcol := colorful.Color{float64(p.R) / 255.0, float64(p.G) / 255.0, float64(p.B) / 255.0}
-				col := &UniqueColour{p, cfcol, 0}
+				col := &UniqueColour{p, cfcol, len(colourList)}
 				colourMap[p] = col
+				colourList = append(colourList, col)
 			}
 		}
 	}
@@ -152,14 +156,7 @@ func GenerateFromImage(img image.Image, outImagePath, outPaletteTexture string) 
 		return nil, fmt.Errorf("Sorry, sprite contains too many colours (>65536)")
 	}
 
-	// Re-order the colours by HSV so easier to edit
-	colourList := make([]*UniqueColour, 0, len(colourMap))
-	nextIndex := uint16(0)
-	for _, c := range colourMap {
-		c.Index = nextIndex
-		colourList = append(colourList, c)
-		nextIndex++
-	}
+	// Re-order the colours by proximity so easier to edit
 	// Sort, the swap function will swap indexes
 	colourList = sortColours(colourList)
 
