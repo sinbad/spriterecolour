@@ -112,6 +112,28 @@ this into Unity as a regular texture and that it's not a Sprite, you don't want
 to pack it with other sprites. You can use compression for this texture if you
 like but watch out for artefacts if adjacent hues are very different.
 
+### L8A8 support
+
+Where the number of colours in the input sprite is <= 256, we could encode it in
+the reference sprite as just 8 bits of luminance and the alpha, i.e. L8A8 rather
+than RGBA. The only reason I'm not doing this is that I found out too late that
+Go's image package doesn't support LA formats, only RGB[A] and plain L 
+(greyscale).
+
+You can work around this by post-processing using ImageMagick:
+
+```
+convert -separate -channel RA -combine sprite_reference.png sprite_reference_la.png
+```
+
+The output `sprite_reference_la.png` only uses 2 channels then, which in 
+uncompressed texture memory is half the size (the PNG will only be a bit smaller
+because of its compression but at runtime it will be uncompressed). It's only 
+worth doing this if the engine you're using supports L8A8 textures;  for example
+as far as I could tell Unity still converts L8A8 PNGs to RGBA textures 
+internally, so you don't save anything in practice. Other engines may support
+L8A8 natively (e.g. I know [Ogre](http://ogre3d.org) does)
+
 ### Premultiplied alpha
 
 Premultiplied alpha is not supported right now, because the palette RGB and
